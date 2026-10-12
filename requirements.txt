@@ -1,0 +1,6 @@
+Flask==0.12
+requests==2.6.0
+PyYAML==3.12
+Django==1.8
+Pillow==5.0.0
+urllib3==1.24

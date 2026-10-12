@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  DB_PASSWORD: admin123              # secret in a ConfigMap
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app
+spec:
+  replicas: 1                        # single replica, no disruption budget
+  selector:
+    matchLabels: { app: app }
+  template:
+    metadata:
+      labels: { app: app }
+    spec:
+      hostNetwork: true              # shares the node's network
+      containers:
+        - name: app
+          image: myorg/app:latest    # mutable tag
+          securityContext:
+            privileged: true         # full host access
+            runAsUser: 0             # root
+            allowPrivilegeEscalation: true
+          ports:
+            - containerPort: 22
+          envFrom:
+            - configMapRef: { name: app-config }
+          volumeMounts:
+            - name: docker
+              mountPath: /var/run/docker.sock   # container escape path
+          # no resource limits, no liveness or readiness probes
+      volumes:
+        - name: docker
+          hostPath: { path: /var/run/docker.sock }

@@ -1,0 +1,32 @@
+# Example pipeline definition. Kept outside .github/workflows so it never runs.
+name: deploy
+
+on:
+  pull_request_target:                       # runs with secrets on fork PRs
+  push:
+    branches: ["*"]
+
+permissions: write-all                       # over-broad token
+
+jobs:
+  build:
+    runs-on: self-hosted                     # untrusted code on a persistent runner
+    steps:
+      - uses: actions/checkout@main          # unpinned action
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}   # checks out untrusted PR code
+      - uses: some-org/deploy-action@master  # third-party action, unpinned
+      - name: Greet
+        run: echo "PR title is ${{ github.event.pull_request.title }}"   # script injection
+      - name: Install
+        run: curl -s http://example.com/install.sh | bash                # unverified, plain HTTP
+      - name: Test
+        run: npm test
+        continue-on-error: true              # failures never fail the build
+      - name: Deploy
+        if: always()                         # deploys even when the build failed
+        env:
+          TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+        run: |
+          echo "token=$TOKEN"                # secret printed to the log
+          ./deploy.sh
